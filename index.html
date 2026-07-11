@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ptolemaic System Simulator</title>
+
+  <!-- Shared KL-UNL foundation (copied in unchanged) -->
+  <link rel="stylesheet" href="foundation/kl-unl.css" type="text/css" media="all">
+  <!-- Sim-specific styles (layered on top of the foundation, never editing it) -->
+  <link rel="stylesheet" href="styles/styles.css" type="text/css" media="all">
+
+  <!--
+    MathJax renders every mathematical symbol/value in this sim (the degree,
+    ratio and rate readouts). It is part of the shared KL-UNL foundation and is
+    expected to live at foundation/mathjax/tex-mml-chtml.js in the deployed
+    pipeline (see the sibling "Gas Retention Simulator" conversion, which hit
+    the same gap). We do NOT load it from a CDN (self-contained requirement).
+    If the library is absent the sim still runs and shows readable plain-text
+    fallbacks (see CONVERSION_NOTES.md). The MathJax contextual menu is
+    intentionally left enabled.
+  -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+      startup: { typeset: false },
+      options: { renderActions: {} }
+    };
+  </script>
+  <script src="foundation/mathjax/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="app-shell__backdrop" aria-hidden="true"></div>
+
+    <!-- Title + Reset / Help / About come from the shared masthead component.
+         It reads its text from foundation/contents.json by sim-id and dispatches
+         a "sim-reset" event we listen for. Do not add a competing <h1>. -->
+    <kl-unl-masthead sim-id="ptolemaicsystem" json-url="foundation/contents.json"></kl-unl-masthead>
+
+    <main class="app-layout" id="appLayout">
+
+      <!-- ================= LEFT COLUMN (diagram) ================= -->
+      <div class="sim-col sim-col--left">
+
+        <!-- Orbit View -->
+        <section class="panel sim-panel sim-orbit-panel" aria-labelledby="hdgOrbit">
+          <h2 class="panel__heading" id="hdgOrbit">Orbit View</h2>
+
+          <!-- Memory box: tucked into the top-right corner of the Orbit View,
+               matching the original (the zodiac ring leaves that corner empty). -->
+          <fieldset class="control-fieldset sim-memory">
+            <legend class="control-fieldset__legend">Memory</legend>
+            <div class="button-row sim-button-row sim-memory__row">
+              <button type="button" id="memoryStoreButton" class="button sim-button">store</button>
+              <button type="button" id="memoryRecallButton" class="button sim-button" disabled>recall</button>
+            </div>
+          </fieldset>
+
+          <div class="panel__canvas-wrap sim-orbit-wrap" id="orbitWrap">
+            <canvas id="orbitCanvas" class="sim-canvas sim-orbit-canvas"
+                    role="img"
+                    aria-label="Orbit view. Shows the earth at the center, the deferent and epicycle circles, the planet, the sun, and the zodiac ring."
+                    aria-describedby="orbitDesc"></canvas>
+
+            <!-- Zodiac ring labels: real HTML text (not canvas-baked) so they zoom and
+                 stay screen-reader legible; positioned with percentages that scale with
+                 the square canvas wrapper, so no per-resize JS is needed. -->
+            <div class="sim-zodiac-ring" id="zodiacRing" aria-hidden="true"></div>
+
+            <!-- Draggable Sun proxy: a real focusable slider positioned by JS to sit on
+                 the sun marker. Tab to focus, click/tap also focuses it; arrow keys
+                 rotate the sun's ecliptic longitude. Pointer dragging is also handled
+                 directly on the canvas (see simulation.js). -->
+            <div class="sim-sun-handle" id="sunHandle"
+                 role="slider" tabindex="0"
+                 aria-label="Sun position"
+                 aria-valuemin="0" aria-valuemax="360"
+                 aria-valuenow="0" aria-valuetext="Sun ecliptic longitude 0 degrees"></div>
+          </div>
+          <p id="orbitDesc" class="sr-only" aria-live="polite"></p>
+        </section>
+      </div>
+
+      <!-- ================= RIGHT COLUMN (controls) ================= -->
+      <div class="sim-col sim-col--right">
+
+        <!-- Planetary Parameters -->
+        <section class="panel sim-panel" aria-labelledby="hdgParams">
+          <h2 class="panel__heading" id="hdgParams">Planetary Parameters</h2>
+          <fieldset class="control-fieldset">
+            <legend class="sr-only">Planetary parameters</legend>
+
+            <div class="control-row sim-preset-row">
+              <label class="control-row__label" for="presetSelect">presets:</label>
+              <select id="presetSelect" class="control-row__input sim-select">
+                <option value="0">Venus</option>
+                <option value="1" selected>Mars</option>
+                <option value="2">Jupiter</option>
+                <option value="3">Saturn</option>
+              </select>
+              <button type="button" id="presetOkButton" class="button sim-button" disabled>OK</button>
+            </div>
+
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="epicycleSlider">epicycle size:</label>
+              <output id="epicycleReadout" class="sim-readout mjx" for="epicycleSlider" aria-hidden="true"></output>
+              <input type="range" id="epicycleSlider" class="control-row__slider sim-slider"
+                     min="0" max="0.75" step="0.01" value="0.658333"
+                     aria-describedby="epicycleReadout">
+            </div>
+
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="eccentricitySlider">eccentricity:</label>
+              <output id="eccentricityReadout" class="sim-readout mjx" for="eccentricitySlider" aria-hidden="true"></output>
+              <input type="range" id="eccentricitySlider" class="control-row__slider sim-slider"
+                     min="0" max="0.2" step="0.01" value="0.1"
+                     aria-describedby="eccentricityReadout">
+            </div>
+
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="motionRateSlider">motion rate:</label>
+              <output id="motionRateReadout" class="sim-readout mjx" for="motionRateSlider" aria-hidden="true"></output>
+              <input type="range" id="motionRateSlider" class="control-row__slider sim-slider"
+                     min="0.01" max="4.5" step="0.01" value="0.52406"
+                     aria-describedby="motionRateReadout">
+            </div>
+
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="apogeeSlider">apogee angle:</label>
+              <output id="apogeeReadout" class="sim-readout mjx" for="apogeeSlider" aria-hidden="true"></output>
+              <input type="range" id="apogeeSlider" class="control-row__slider sim-slider"
+                     min="0" max="360" step="0.1" value="106.667"
+                     aria-describedby="apogeeReadout">
+            </div>
+
+            <div class="sim-planet-type" role="radiogroup" aria-label="planet type">
+              <span class="control-row__label sim-planet-type__label" id="planetTypeLabel">planet type:</span>
+              <div class="control-choice sim-choice">
+                <input type="radio" id="planetTypeSuperior" name="planetType" value="superior" checked>
+                <label for="planetTypeSuperior">superior</label>
+              </div>
+              <div class="control-choice sim-choice">
+                <input type="radio" id="planetTypeInferior" name="planetType" value="inferior">
+                <label for="planetTypeInferior">inferior</label>
+              </div>
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- Controls and Settings -->
+        <section class="panel sim-panel" aria-labelledby="hdgControls">
+          <h2 class="panel__heading" id="hdgControls">Controls and Settings</h2>
+          <fieldset class="control-fieldset">
+            <legend class="sr-only">Controls and settings</legend>
+
+            <div class="button-row sim-button-row">
+              <button type="button" id="animateButton" class="button sim-button">start animation</button>
+            </div>
+
+            <div class="control-row sim-slider-row sim-slider-row--nofield">
+              <label class="control-row__label" for="animationRateSlider">animation rate:</label>
+              <input type="range" id="animationRateSlider" class="control-row__slider sim-slider"
+                     min="1" max="500" step="0.1" value="100"
+                     aria-valuetext="animation rate 100">
+            </div>
+
+            <div class="control-grid sim-checks">
+              <div class="control-choice sim-choice">
+                <input type="checkbox" id="showDeferentCheck" checked>
+                <label for="showDeferentCheck">show deferent</label>
+              </div>
+              <div class="control-choice sim-choice">
+                <input type="checkbox" id="showPlanetVectorCheck">
+                <label for="showPlanetVectorCheck">show planet vector</label>
+              </div>
+              <div class="control-choice sim-choice">
+                <input type="checkbox" id="showEpicycleCheck" checked>
+                <label for="showEpicycleCheck">show epicycle</label>
+              </div>
+              <div class="control-choice sim-choice">
+                <input type="checkbox" id="showEquantVectorCheck">
+                <label for="showEquantVectorCheck">show equant vector</label>
+              </div>
+              <div class="control-choice sim-choice sim-choice--indent">
+                <input type="checkbox" id="showEarthSunLineCheck">
+                <label for="showEarthSunLineCheck">show earth-sun line</label>
+              </div>
+              <div class="control-choice sim-choice sim-choice--indent">
+                <input type="checkbox" id="showEpicyclePlanetLineCheck">
+                <label for="showEpicyclePlanetLineCheck">show epicycle-planet line</label>
+              </div>
+            </div>
+
+            <div class="control-row sim-slider-row">
+              <label class="control-row__label" for="pathDurationSlider">path duration:</label>
+              <output id="pathDurationReadout" class="sim-readout mjx" for="pathDurationSlider" aria-hidden="true"></output>
+              <input type="range" id="pathDurationSlider" class="control-row__slider sim-slider"
+                     min="0.3" max="10" step="0.01" value="2.5"
+                     aria-describedby="pathDurationReadout">
+            </div>
+          </fieldset>
+        </section>
+
+        <!-- Key / legend -->
+        <section class="panel sim-panel" aria-labelledby="hdgKey">
+          <h2 class="panel__heading" id="hdgKey">Key</h2>
+          <div class="sim-key">
+            <div class="sim-key__tabs" role="group" aria-label="Diagram element key. Choose an element to see its explanation.">
+              <div class="sim-key__item">
+                <button type="button" class="sim-key__tab sim-key__tab--earth" data-key="earth" aria-pressed="true" aria-label="Earth"></button>
+                <span class="sim-key__caption" aria-hidden="true">Earth</span>
+              </div>
+              <div class="sim-key__item">
+                <button type="button" class="sim-key__tab sim-key__tab--planet" data-key="planet" aria-pressed="false" aria-label="Planet"></button>
+                <span class="sim-key__caption" aria-hidden="true">Planet</span>
+              </div>
+              <div class="sim-key__item">
+                <button type="button" class="sim-key__tab sim-key__tab--sun" data-key="sun" aria-pressed="false" aria-label="Sun"></button>
+                <span class="sim-key__caption" aria-hidden="true">Sun</span>
+              </div>
+              <div class="sim-key__item">
+                <button type="button" class="sim-key__tab sim-key__tab--deferent" data-key="deferent" aria-pressed="false" aria-label="Deferent center"></button>
+                <span class="sim-key__caption" aria-hidden="true">Deferent</span>
+              </div>
+              <div class="sim-key__item">
+                <button type="button" class="sim-key__tab sim-key__tab--equant" data-key="equant" aria-pressed="false" aria-label="Equant point"></button>
+                <span class="sim-key__caption" aria-hidden="true">Equant</span>
+              </div>
+              <span class="sim-key__hint">click on icon to see explanation</span>
+            </div>
+            <!-- The visible description and an invisible "sizer" holding the
+                 longest description are stacked in the same grid cell, so the
+                 box is always as tall as the longest text at the current width
+                 and does not resize when the selection changes. -->
+            <div class="sim-key__info">
+              <p class="sim-key__info-text" id="keyInfo" aria-live="polite">The earth. In Ptolemy's model the earth is stationary at the center.</p>
+              <span class="sim-key__info-sizer" aria-hidden="true">The planet, which in this model orbits the earth using a circle on circle construction. The large circle is the deferent and the small one is the epicycle.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============ FULL-WIDTH ROW (spans both columns) ============
+           The Zodiac Strip sits full-width across the bottom, as in the
+           original, so its 12 constellation names have room and don't crowd. -->
+      <section class="panel sim-panel sim-strip-panel" aria-labelledby="hdgZodiacStrip">
+        <h2 class="panel__heading" id="hdgZodiacStrip">Zodiac Strip</h2>
+        <div class="panel__canvas-wrap sim-strip-wrap" id="stripWrap">
+          <div class="sim-strip-markers" id="stripMarkers" aria-hidden="true">
+            <div class="sim-strip-marker sim-strip-marker--sun" id="sunMarkerLabel">
+              <span class="sim-strip-marker__label">S</span>
+              <span class="sim-strip-marker__bar"></span>
+            </div>
+            <div class="sim-strip-marker sim-strip-marker--planet" id="planetMarkerLabel">
+              <span class="sim-strip-marker__label">P</span>
+              <span class="sim-strip-marker__bar"></span>
+            </div>
+          </div>
+          <canvas id="zodiacCanvas" class="sim-canvas sim-strip-canvas"
+                  role="img"
+                  aria-label="Zodiac strip. Shows where the sun and the planet currently fall along the zodiac, with a fading trail of the planet's recent motion."
+                  aria-describedby="zodiacDesc"></canvas>
+          <div class="sim-zodiac-strip-labels" id="zodiacStripLabels" aria-hidden="true"></div>
+        </div>
+        <p id="zodiacDesc" class="sr-only" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <!-- Screen-reader status: announces meaningful state changes with units. -->
+    <div class="sr-only" aria-live="polite" id="liveStatus"></div>
+    <div class="sr-only" aria-live="assertive" id="liveAlert"></div>
+  </div>
+
+  <script src="foundation/kl-unl-masthead.js"></script>
+  <script src="foundation/kl-unl.js"></script>
+  <script type="module" src="simulation.js"></script>
+</body>
+</html>

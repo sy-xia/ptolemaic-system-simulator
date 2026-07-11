@@ -1,0 +1,471 @@
+/* =====================================================================
+   Ptolemaic System Simulator -- sim-specific styles.
+   Layered on top of the KL-UNL foundation (kl-unl.css); the foundation
+   files are never edited. Uses rem/relative units and reflows from
+   desktop -> iPad -> phone portrait. Base body text >= 1.125rem.
+   ===================================================================== */
+
+.app-shell { padding-bottom: 0.75rem; }
+
+/* Base type for all sim content. Sized in rem so it still tracks the user's
+   browser font setting and zooms cleanly. Set to the 16px browser default
+   (rather than the pipeline's preferred 1.125rem "larger" floor) so the
+   controls column stays compact enough to fit on one screen -- an explicit,
+   user-directed tradeoff; see ACCESSIBILITY.md. */
+.sim-panel,
+.sim-panel button,
+.sim-panel select,
+.sim-panel input,
+.sim-panel label,
+.sim-key,
+.sim-strip-markers,
+.sim-zodiac-ring { font-size: 0.9rem; line-height: 1.25; }
+
+.panel__heading { font-size: 1rem; }
+
+/* --- two-column layout: diagram (left) is the wide column, controls
+   (right) narrower -- this is the reverse ratio of the foundation's
+   default 25rem/1fr, so it is overridden here, but ONLY at desktop
+   widths. Below the foundation's own 56rem breakpoint its rule
+   (.app-layout { grid-template-columns: 1fr }) must keep winning so the
+   layout still collapses to a single column on tablets/phones -- this
+   override is scoped to a wider min-width so it never fights that. --- */
+@media (min-width: 56.0625rem) {
+  .app-layout {
+    grid-template-columns: 3fr 2fr;
+    /* Override the foundation's align-items:start so the two columns share the
+       taller one's height; the Orbit View panel then grows to fill the left
+       column (with its large diagram) instead of leaving blank page below it,
+       matching the original's big-diagram-on-the-left arrangement. */
+    align-items: stretch;
+  }
+  /* Orbit View grows to fill the (now equal-height) left column and centers
+     its large diagram vertically. */
+  .sim-col--left > .sim-orbit-panel {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The right column's last panel (Key) likewise grows to fill any leftover
+     space, so its bottom edge aligns with the Orbit View panel's bottom. */
+  .sim-col--right > .sim-panel:last-child { flex: 1 1 auto; }
+  /* Center the big diagram vertically in the panel. The panel is as tall as the
+     (accessibility-font) controls column beside it, which is taller than a
+     width-capped square diagram, so the leftover slack is split evenly above
+     and below rather than left as a blank page under a short panel. */
+  .sim-col--left > .sim-orbit-panel > .sim-orbit-wrap { margin-top: auto; margin-bottom: auto; }
+}
+
+.sim-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+.sim-col--left  { padding: 0.25rem 0.45rem 0.25rem 0.25rem; }
+.sim-col--right { padding: 0.25rem 0.25rem 0.25rem 0.45rem; }
+
+/* Zodiac Strip spans the full width beneath both columns (as in the original),
+   so its 12 constellation labels have room. grid-column: 1/-1 also degrades
+   correctly to the single column under the foundation's 56rem collapse. */
+.sim-strip-panel {
+  grid-column: 1 / -1;
+  margin: 0.65rem 0.25rem 0;
+}
+
+.sim-panel { padding-bottom: 0.9rem; border-radius: 2px; }
+
+/* ------------------------------ Memory ------------------------------ */
+.sim-memory { padding-top: 0; }
+.sim-memory__row { justify-content: flex-start; gap: 0.6rem; }
+
+/* On desktop the Memory box floats in the Orbit View's top-right corner
+   (over the empty corner outside the circular zodiac ring), as in the
+   original. On narrower widths it falls back to a normal in-flow row. */
+@media (min-width: 56.0625rem) {
+  .sim-orbit-panel { position: relative; }
+  .sim-memory {
+    position: absolute;
+    top: 2.9rem;
+    right: 0.85rem;
+    z-index: 3;
+    margin: 0;
+    padding: 0.35rem 0.6rem 0.5rem;
+    border: var(--border-width, 1px) var(--border-style, solid) var(--border-color, #767676);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.92);
+  }
+  .sim-memory .control-fieldset__legend { padding-bottom: 0.2rem; font-size: 0.9rem; }
+  .sim-memory__row { gap: 0.35rem; }
+  .sim-memory .sim-button { font-size: 0.85rem; padding: 0.25rem 0.55rem; }
+}
+
+/* ---------------------------- Orbit View ---------------------------- */
+.sim-orbit-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 40rem;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  padding: 0 !important;
+}
+.sim-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  touch-action: none;   /* draggable canvases must not scroll the page */
+}
+
+/* Zodiac ring labels: real HTML text positioned with percentages, so they
+   scale with the square wrapper without any JS resize handling, stay
+   zoomable, and remain screen-reader legible (unlike canvas-baked text). */
+.sim-zodiac-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.sim-zodiac-symbol {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+/* Prefer plain-text symbol fonts over an emoji/colour-glyph fallback for
+   this Unicode block (paired with the U+FE0E text-presentation selector
+   already appended to each glyph in simulation.js). */
+.sim-zodiac-symbol__glyph,
+.sim-zodiac-strip-label__glyph {
+  font-family: "Segoe UI Symbol", "Segoe UI", "DejaVu Sans", "Apple Symbols", sans-serif;
+  font-variant-emoji: text;
+}
+.sim-zodiac-symbol__glyph { display: block; font-size: 1.3em; }
+.sim-zodiac-symbol__name  { display: block; font-size: 0.62em; font-weight: 600; }
+
+/* Draggable Sun proxy: a real focusable slider element positioned over its
+   canvas marker. Kept an accessible min touch-target size even though its
+   visible marker is smaller; the hit area is centered on the marker. */
+.sim-sun-handle {
+  position: absolute;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  background: transparent;
+}
+.sim-sun-handle:hover { background: rgba(254, 190, 1, 0.25); }
+.sim-sun-handle:active { cursor: grabbing; }
+
+/* ---------------------------- Zodiac Strip --------------------------- */
+/* The strip is a thin horizontal band (the canvas) with S/P position bars
+   overlaid on it and the zodiac symbol row directly below -- a compact
+   layout matching the original, not a tall empty box. */
+.sim-strip-wrap {
+  position: relative;
+  /* horizontal inset so the S (position 0) and P (position 600) bars and the
+     end constellation labels aren't jammed against the panel edges. No
+     width:100% here -- a block box already fills its container, and adding
+     100% + horizontal padding (content-box) would overflow the viewport. */
+  box-sizing: border-box;
+  padding: 1.5rem 1.5rem 0 !important;
+}
+.sim-strip-canvas { display: block; width: 100%; height: auto; }
+
+/* S / P markers overlay the canvas band: a thin vertical bar spanning the
+   band with the letter label sitting just above it -- matching the original
+   "Bar" marker sprite (a letter over a short vertical line). Positioned by
+   left% from JS as the sun/planet move along the strip. */
+.sim-strip-markers {
+  position: absolute;
+  /* match the wrap's horizontal padding so the bars align to the canvas
+     content box (absolute left:0 would align to the padding box instead) */
+  left: 1.5rem;
+  right: 1.5rem;
+  top: 1.5rem;              /* aligns with the canvas top */
+  aspect-ratio: 600 / 24;  /* same ratio as the canvas, so it overlays the band exactly at any width */
+  pointer-events: none;
+}
+.sim-strip-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+.sim-strip-marker__bar {
+  display: block;
+  width: 0.125rem;
+  height: 100%;            /* spans the full band height, like the original */
+  margin: 0 auto;
+  background: currentColor;
+}
+.sim-strip-marker__label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.1rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+/* darkened from the original's #b8860b goldenrod fill to clear 4.5:1 against
+   white at this text size -- see ACCESSIBILITY.md */
+.sim-strip-marker--sun    { color: #6b4f00; }
+.sim-strip-marker--planet { color: #cc2222; }
+
+/* Zodiac symbol row: normal-flow relative box directly under the canvas; each
+   glyph+name is absolutely positioned by left% within it (same 0-100% space
+   as the canvas, so they line up). */
+.sim-zodiac-strip-labels {
+  position: relative;
+  height: 2.6rem;
+  margin-top: 0.2rem;
+  pointer-events: none;
+}
+.sim-zodiac-strip-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.sim-zodiac-strip-label__glyph { display: block; font-size: 1.15rem; }
+.sim-zodiac-strip-label__name  { display: block; font-size: 0.68rem; font-weight: 600; }
+
+/* ------------------------- sliders / readouts ------------------------ */
+/* Shared control grid so every row's label, value box, and slider bar line up
+   on the same vertical edges:
+   column 1 (label, fixed) | column 2 (value box / select, fixed) | column 3 (bar). */
+.sim-slider-row,
+.sim-slider-row--nofield {
+  grid-template-columns: 6.5rem 6rem 1fr;
+  gap: 0.35rem 0.6rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+/* rows without a value box (animation rate): the bar still starts in the slider
+   column, so it aligns with the parameter sliders above/below it. */
+.sim-slider-row--nofield .sim-slider { grid-column: 3 / -1; }
+
+.sim-readout {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding: 0.15rem 0.4rem;
+  border: var(--border-width, 1px) var(--border-style, solid) var(--border-color, #767676);
+  border-radius: 3px;
+  background: var(--background-color, #fff);
+  white-space: nowrap;
+}
+.sim-slider {
+  width: 100%;
+  min-height: 0;
+  height: 1.15rem;                 /* smaller bar to match the compact text; the
+                                      native thumb/track scale with this height
+                                      and accent-color keeps the filled-bar look */
+  accent-color: var(--button-background-color, #005a9c);
+  cursor: pointer;
+}
+
+.sim-preset-row {
+  grid-template-columns: 6.5rem 6rem auto;
+  gap: 0.35rem 0.6rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+.sim-select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2rem;
+  padding: 0.2rem 0.4rem;
+  color: var(--foreground-color, #1a1a1a);
+  background: var(--background-color, #fff);
+  border: var(--border-width, 1px) var(--border-style, solid) var(--border-color, #767676);
+}
+
+.sim-planet-type {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 0.5rem;
+}
+.sim-planet-type__label { font-weight: normal; }
+
+.sim-button-row { margin-top: 0.35rem; margin-bottom: 0.6rem; justify-content: flex-start; gap: 0.75rem; }
+.sim-button {
+  font-size: 0.9rem;                       /* match the compact body text */
+  min-height: 2rem;                        /* override the foundation's 2.75rem so buttons are shorter */
+  min-width: 0;
+  border: var(--border-width, 1px) var(--border-style, solid) var(--border-color, #767676);
+  border-radius: 5px;
+  background: #f0f0f0;
+  color: var(--foreground-color, #1a1a1a);
+}
+.sim-button:hover:not(:disabled),
+.sim-button:focus-visible { background: #e2e2e2; }
+.sim-button:disabled { opacity: 0.45; cursor: default; }
+
+/* -------------------------- checkbox grid ----------------------------
+   Mirrors the original's layout: the two "line" checkboxes sit in the
+   right column only, indented under the vector checkboxes above them. */
+/* auto 1fr (instead of the foundation's even 1fr 1fr) pulls the second column
+   of checkboxes left, right after the first column, and gives the long
+   "show epicycle-planet line" label room so it doesn't wrap -- matching the
+   original's tighter two-column grouping. */
+.sim-checks { margin-top: 0.25rem; margin-bottom: 0.6rem; grid-template-columns: auto 1fr; }
+.sim-choice { min-height: 2.2rem; gap: 0.5rem; }
+.sim-choice input[type="checkbox"],
+.sim-choice input[type="radio"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--button-background-color, #005a9c);
+}
+.sim-checks > :nth-child(1) { grid-column: 1; grid-row: 1; }
+.sim-checks > :nth-child(2) { grid-column: 2; grid-row: 1; }
+.sim-checks > :nth-child(3) { grid-column: 1; grid-row: 2; }
+.sim-checks > :nth-child(4) { grid-column: 2; grid-row: 2; }
+.sim-checks > :nth-child(5) { grid-column: 2; grid-row: 3; }
+.sim-checks > :nth-child(6) { grid-column: 2; grid-row: 4; }
+
+/* ------------------------------- Key --------------------------------- */
+.sim-key__tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;              /* keep the hint on the same row as the icons */
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+.sim-key__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 0 0 auto;                 /* icons keep their size; the hint takes the rest */
+}
+/* A visible caption under each icon so identity is never colour-only
+   (e.g. the earth/planet dots differ mainly by hue) -- see ACCESSIBILITY.md */
+.sim-key__caption { font-size: 0.85rem; font-weight: 600; }
+.sim-key__tab {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.3rem;
+  border: var(--border-width, 1px) var(--border-style, solid) var(--border-color, #767676);
+  border-radius: 4px;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 60%;
+  cursor: pointer;
+}
+.sim-key__tab[aria-pressed="true"] {
+  border-color: var(--outline-color, #005fcc);
+  border-width: 0.15rem;
+  background-color: #eef4ff;
+}
+.sim-key__tab--earth    { background-image: url("../assets/earth.svg"); }
+.sim-key__tab--planet   { background-image: url("../assets/planet.svg"); }
+.sim-key__tab--sun      { background-image: url("../assets/sun.svg"); background-size: 70%; }
+.sim-key__tab--deferent { background-image: url("../assets/deferent-center.svg"); background-size: 45%; }
+.sim-key__tab--equant   { background-image: url("../assets/equant-point.svg"); background-size: 55%; }
+.sim-key__hint {
+  flex: 1 1 0;                   /* fills the space to the right of the icons */
+  min-width: 0;                  /* allowed to wrap within that space (2 lines) */
+  font-size: 0.78rem;
+  font-style: italic;
+  line-height: 1.2;
+  color: #444;
+  margin-left: 0.35rem;
+}
+.sim-key__info {
+  display: grid;                 /* stack the visible text and the sizer in one cell */
+  margin: 0.75rem 1rem 0;
+  padding: 0.75rem;
+  min-height: 3.6rem;
+  border: var(--border-width, 1px) var(--border-style, solid) var(--border-color, #767676);
+  border-radius: 3px;
+  background: #fafafa;
+}
+.sim-key__info > .sim-key__info-text,
+.sim-key__info > .sim-key__info-sizer {
+  grid-area: 1 / 1;             /* both occupy the same cell -> box = tallest of the two */
+  margin: 0;
+}
+/* the sizer reserves the height of the longest description but is never shown
+   (visibility:hidden keeps its layout size yet removes it from the a11y tree) */
+.sim-key__info-sizer { visibility: hidden; pointer-events: none; }
+
+/* Below ~44rem the full-width strip is too narrow for all 12 constellation
+   NAMES to fit without crowding, so show the glyphs only. The names are
+   decorative here (the row is aria-hidden; screen readers get #zodiacDesc,
+   and the Orbit View ring always shows glyph + name), so nothing essential
+   is lost. */
+@media (max-width: 44rem) {
+  .sim-zodiac-strip-label__name { display: none; }
+  .sim-zodiac-strip-labels { height: 1.6rem; }
+  .sim-zodiac-strip-label__glyph { font-size: 1rem; }
+}
+
+/* ----------------------- responsive: phone portrait ------------------- */
+@media (max-width: 30rem) {
+  .sim-slider-row,
+  .sim-slider-row--nofield { grid-template-columns: 1fr; }
+  .sim-readout { justify-self: start; }
+  .sim-preset-row { grid-template-columns: 1fr; }
+  .sim-preset-row select,
+  .sim-preset-row button { width: 100%; }
+  .sim-checks { grid-template-columns: 1fr; }
+  .sim-checks > * { grid-column: 1 !important; }
+  .sim-checks > :nth-child(1) { grid-row: 1; }
+  .sim-checks > :nth-child(2) { grid-row: 2; }
+  .sim-checks > :nth-child(3) { grid-row: 3; }
+  .sim-checks > :nth-child(4) { grid-row: 4; }
+  .sim-checks > :nth-child(5) { grid-row: 5; }
+  .sim-checks > :nth-child(6) { grid-row: 6; }
+}
+
+/* =====================================================================
+   COMPACT VERTICAL RHYTHM
+   Tightens padding/margins/gaps and control heights so the controls column
+   fits on a single screen (user-directed). Placed last so it wins. Kept in
+   rem so it still scales with the user's zoom/font setting.
+   ===================================================================== */
+.sim-col { gap: 0.3rem; }
+.sim-panel { padding-bottom: 0.3rem; }
+.sim-panel .panel__heading { padding: 0.25rem 1rem; }
+.sim-panel .control-fieldset { padding: 0 1rem 0.25rem; }
+.sim-panel .control-fieldset__legend { padding-bottom: 0.2rem; }
+
+/* control rows */
+.sim-slider-row { margin-bottom: 0.2rem; }
+.sim-slider { min-height: 0; height: 1.15rem; }   /* small bar to match the compact text */
+.sim-preset-row { margin-bottom: 0.3rem; }
+.sim-planet-type { margin-top: 0.2rem; gap: 0.2rem 1rem; }
+.sim-choice { min-height: 1.45rem; margin: 0.05rem 0; }
+.sim-checks { margin-top: 0.1rem; margin-bottom: 0.25rem; gap: 0.2rem 1rem; }
+.sim-button-row { margin-top: 0.15rem; margin-bottom: 0.25rem; }
+
+/* Key panel */
+.sim-key__tabs { gap: 0.4rem; }
+.sim-key__tab { width: 2.05rem; height: 2.05rem; }
+.sim-key__caption { font-size: 0.72rem; }
+.sim-key__info { margin-top: 0.4rem; padding: 0.45rem 0.55rem; min-height: 1.9rem; }
+
+/* Memory corner box a touch smaller too */
+@media (min-width: 56.0625rem) {
+  .sim-memory { top: 1.35rem; padding: 0.25rem 0.5rem 0.35rem; }
+}
+
+/* -------------------- reduced motion: no forced changes ---------------
+   Motion here only ever runs after the user presses "start animation"
+   (matching the original's default un-animated state), so there is no
+   autoplaying motion to suppress. The trail/animation loop itself checks
+   prefers-reduced-motion to skip the fading-trail redraw cadence when set
+   (see simulation.js), leaving the diagram in its current, readable state. */

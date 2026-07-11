@@ -1,0 +1,37 @@
+{
+  "_comment": "Please place new simulation entries (like the newSim example) in alphabetical order.",
+
+  "newSim": {
+    "meta": {
+      "title": "Simulation Title",
+      "version": "2.0"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": "<p>Leave this string completely blank for no Help button.</p>"
+      },
+      "about": {
+        "title": "About this Demonstrator",
+        "content": "<p>For additional astronomy education materials please visit <a href=\"https://astro.unl.edu/\">Astronomy Education</a> at the University of Nebraska-Lincoln.</p><p>This demonstrator has been modernized by the AAS Applet Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  },
+
+  "ptolemaicsystem": {
+    "meta": {
+      "title": "Ptolemaic System Simulator",
+      "version": "2.0"
+    },
+    "masthead": {
+      "help": {
+        "title": "Help and Instructions",
+        "content": "<p>This simulator demonstrates how Ptolemy's geocentric model accounts for the movements of the planets. In this model the sun, moon, and planets orbit the stationary earth. A planet's path is described by a circle-on-circle construction: a planet moves on a circle called the <em>epicycle</em>, which in turn moves on a larger circle called the <em>deferent</em>.</p><p>The key motivating idea behind Ptolemy's model is the idea that uniform circular motion is sufficient to account for the planets' motions. Nevertheless, some complications were required to achieve the desired accuracy. The first is that the deferent does not have to be exactly centered on the earth. The second is that the center of uniform motion of the epicycle &ndash; the <em>equant</em> point &ndash; doesn't have to be at the center of the deferent. In practice Ptolemy placed the equant point at twice the distance from earth as the center of the deferent.</p><p>This model is shown in the <em>Orbit View</em> panel. The <em>Zodiac Strip</em> panel below shows where the sun and planet would appear along the zodiac from an earth observer's point of view. The zodiac is the part of the sky where the sun and planets are found. The zodiac constellations are represented by their traditional symbols.</p><p>The model can be adjusted with the sliders in the <em>Planetary Parameters</em> panel. There's also the capability to load Ptolemy's own values for the planets (Mercury is left out since it has additional complications to account for its precession).</p><p>The <em>Controls and Settings</em> panel lets you set the model in motion as well as control the appearance of the features shown.</p>"
+      },
+      "about": {
+        "title": "About this Simulator",
+        "content": "<p>This simulator is part of the Solar System Models Module of the <a href=\"https://astro.unl.edu/naap/\">Nebraska Astronomy Applet Project</a>. Supporting materials and additional astronomy education resources can be found there.</p><p>This simulator has been modernized by the AAS Applet Task Force to meet modern web accessibility standards (WCAG 2.1 AA).</p><p>Initial funding for this work was provided by NSF grants #0231270 and/or #0404988.</p><p>Permission is granted to use these files for noncommercial purposes as long as they remain unmodified.</p>"
+      }
+    }
+  }
+}
