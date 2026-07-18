@@ -158,11 +158,15 @@
               <button type="button" id="animateButton" class="button sim-button">start animation</button>
             </div>
 
-            <div class="control-row sim-slider-row sim-slider-row--nofield">
+            <div class="control-row sim-slider-row">
               <label class="control-row__label" for="animationRateSlider">animation rate:</label>
+              <output id="animationRateReadout" class="sim-readout mjx" for="animationRateSlider" aria-hidden="true"></output>
+              <!-- step=1 (not 0.1): with a 1-500 range a 0.1 arrow step was far
+                   too small to perceive, which made the keyboard feel broken.
+                   PageUp/PageDown give a coarse jump. -->
               <input type="range" id="animationRateSlider" class="control-row__slider sim-slider"
-                     min="1" max="500" step="0.1" value="100"
-                     aria-valuetext="animation rate 100">
+                     min="1" max="500" step="1" value="100"
+                     aria-describedby="animationRateReadout">
             </div>
 
             <div class="control-grid sim-checks">

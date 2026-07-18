@@ -505,7 +505,7 @@ const ui = {};
   'presetSelect', 'presetOkButton', 'epicycleSlider', 'epicycleReadout',
   'eccentricitySlider', 'eccentricityReadout', 'motionRateSlider', 'motionRateReadout',
   'apogeeSlider', 'apogeeReadout', 'planetTypeSuperior', 'planetTypeInferior',
-  'animateButton', 'animationRateSlider', 'pathDurationSlider', 'pathDurationReadout',
+  'animateButton', 'animationRateSlider', 'animationRateReadout', 'pathDurationSlider', 'pathDurationReadout',
   'showDeferentCheck', 'showEpicycleCheck', 'showPlanetVectorCheck', 'showEquantVectorCheck',
   'showEarthSunLineCheck', 'showEpicyclePlanetLineCheck',
   'memoryStoreButton', 'memoryRecallButton', 'orbitDesc', 'zodiacDesc',
@@ -586,6 +586,8 @@ function refreshReadouts() {
   mjSet(ui.motionRateReadout, motion.toFixed(2) + '^{\\circ}/\\text{day}', motion.toFixed(2) + '°/day');
   mjSet(ui.epicycleReadout, epi.toFixed(2), epi.toFixed(2));
   mjSet(ui.pathDurationReadout, path.toFixed(2) + '\\ \\text{yr}', path.toFixed(2) + ' yr');
+  const rate = Number(ui.animationRateSlider.value);
+  mjSet(ui.animationRateReadout, rate.toFixed(0), rate.toFixed(0));
 
   ui.apogeeSlider.setAttribute('aria-valuetext', `apogee angle ${apogee.toFixed(1)} degrees`);
   ui.eccentricitySlider.setAttribute('aria-valuetext', `eccentricity ${ecc.toFixed(2)}`);
@@ -688,10 +690,14 @@ function renderOrbit() {
 
   drawPathSegments(ctx, state.segments, state.tempSegment, PATH_COLOR);
 
-  if (state.showDeferent) drawCircleAsset(ctx, state.deferentX, state.deferentY, DEFERENT_RADIUS);
+  // deferentY / equantY are stored in the AS's math convention (Y-up); the
+  // stage is Y-down, so they are NEGATED when placed on screen -- exactly as
+  // AS updateLayout does (_deferentMC._y = -_deferentY, _equantPointMC._y =
+  // -_equantY). Without this the earth/deferent/equant stack is flipped.
+  if (state.showDeferent) drawCircleAsset(ctx, state.deferentX, -state.deferentY, DEFERENT_RADIUS);
   if (state.showEpicycle) drawCircleAsset(ctx, state.epicycleX, state.epicycleY, state.epicycleRadius);
 
-  if (state.showEquantVector) drawLine(ctx, state.equantX, state.equantY, state.epicycleX, state.epicycleY, CONNECT_LINE_COLOR);
+  if (state.showEquantVector) drawLine(ctx, state.equantX, -state.equantY, state.epicycleX, state.epicycleY, CONNECT_LINE_COLOR);
   if (state.showEpicyclePlanetLine) drawLine(ctx, state.epicycleX, state.epicycleY, state.planetX, state.planetY, CONNECT_LINE_COLOR);
   if (state.showEarthSunLine) drawLine(ctx, EARTH_X, EARTH_Y, state.sunX, state.sunY, CONNECT_LINE_COLOR);
   if (state.showPlanetVector) {
@@ -699,8 +705,8 @@ function renderOrbit() {
     drawLine(ctx, 0, 0, PLANET_VECTOR_RADIUS * Math.cos(lon), PLANET_VECTOR_RADIUS * Math.sin(lon), CONNECT_LINE_COLOR);
   }
 
-  drawMarkerAsset(ctx, 'deferentCenter', state.deferentX, state.deferentY);
-  drawMarkerAsset(ctx, 'equantPoint', state.equantX, state.equantY);
+  drawMarkerAsset(ctx, 'deferentCenter', state.deferentX, -state.deferentY);
+  drawMarkerAsset(ctx, 'equantPoint', state.equantX, -state.equantY);
   drawMarkerAsset(ctx, 'earth', EARTH_X, EARTH_Y);
   drawMarkerAsset(ctx, 'sun', state.sunX, state.sunY);
   drawMarkerAsset(ctx, 'planet', state.planetX, state.planetY);
@@ -717,11 +723,14 @@ function renderOrbit() {
 /* -------------------------------------------------------------------
    10. Rendering -- Zodiac Strip
    ------------------------------------------------------------------- */
-function stripToPx(x) { return x * (ui.zodiacCanvas.width / STRIP_WIDTH); }
+/* Strip x is already in logical strip units (0..STRIP_WIDTH), which is also the
+   canvas's LOGICAL coordinate space (the backing store is dpr-scaled via the
+   context transform, so drawing code always works in logical units). */
+function stripToPx(x) { return x; }
 
 function drawStripSpans(ctx, segments, tempSegment) {
-  const yScale = ui.zodiacCanvas.height / (STRIP_HALF_HEIGHT * 2);
-  const midY = ui.zodiacCanvas.height / 2;
+  const yScale = STRIP_HEIGHT / (STRIP_HALF_HEIGHT * 2);
+  const midY = STRIP_HEIGHT / 2;
   const h = STRIP_HALF_HEIGHT * yScale;
   segments.forEach(seg => {
     ctx.globalAlpha = seg.alpha / 100;
@@ -743,7 +752,7 @@ function drawStripSpans(ctx, segments, tempSegment) {
 
 function renderZodiacStrip() {
   const ctx = zodiacCtx;
-  ctx.clearRect(0, 0, ui.zodiacCanvas.width, ui.zodiacCanvas.height);
+  ctx.clearRect(0, 0, STRIP_WIDTH, STRIP_HEIGHT);
   drawStripSpans(ctx, state.zodiac.segments, state.zodiac.tempSegment);
 
   const sunPct = (state.zodiacSunX || 0) / STRIP_WIDTH * 100;
@@ -809,14 +818,23 @@ function updateDescriptions(force) {
   lastDescUpdate = now;
 
   const sunDeg = ((state.sunAngle / DEG2RAD) % 360 + 360) % 360;
+  const planetDeg = (((-state.planetLongitude) / DEG2RAD) % 360 + 360) % 360;
+  const sunSign = nearestZodiacSign(-state.sunAngle);
+  const planetSign = nearestZodiacSign(state.planetLongitude);
   const type = state.isSuperiorPlanet ? 'superior' : 'inferior';
+
+  // Lead with WHERE THE SUN AND PLANET ARE (sign + longitude) so an audio-only
+  // user hears the sky positions up front, not only at the very end of the page.
   ui.orbitDesc.textContent =
+    `Sun in ${sunSign}, ecliptic longitude ${sunDeg.toFixed(1)} degrees. ` +
+    `Planet in ${planetSign}, ecliptic longitude ${planetDeg.toFixed(1)} degrees. ` +
     `Planet type ${type}. Deferent radius ${DEFERENT_RADIUS} units, eccentricity ${(state.eccentricity / 100).toFixed(2)}, ` +
     `apogee angle ${(state.apogeeAngle / DEG2RAD).toFixed(1)} degrees, epicycle size ${(state.epicycleRadius / 100).toFixed(2)}. ` +
-    `Sun ecliptic longitude ${sunDeg.toFixed(1)} degrees. Animation ${state.animating ? 'running' : 'paused'}.`;
+    `Animation ${state.animating ? 'running' : 'paused'}.`;
 
   ui.zodiacDesc.textContent =
-    `Sun is near ${nearestZodiacSign(-state.sunAngle)}. Planet is near ${nearestZodiacSign(state.planetLongitude)}, ` +
+    `Sun in ${sunSign}, ecliptic longitude ${sunDeg.toFixed(1)} degrees. ` +
+    `Planet in ${planetSign}, ecliptic longitude ${planetDeg.toFixed(1)} degrees, ` +
     `trailing a fading path of its recent motion.`;
 }
 
@@ -961,7 +979,7 @@ ui.sunHandle.addEventListener('pointermove', evt => {
 });
 ui.sunHandle.addEventListener('pointerup', () => {
   const deg = ((state.sunAngle / DEG2RAD) % 360 + 360) % 360;
-  announce('liveStatus', `Sun ecliptic longitude ${deg.toFixed(1)} degrees.`);
+  announce('liveStatus', `Sun in ${nearestZodiacSign(-state.sunAngle)}, ecliptic longitude ${deg.toFixed(1)} degrees.`);
   updateDescriptions(true);
 });
 
@@ -981,7 +999,7 @@ ui.sunHandle.addEventListener('keydown', evt => {
   if (delta != null) setSunAngle(state.sunAngle + delta);
   render();
   const deg = ((state.sunAngle / DEG2RAD) % 360 + 360) % 360;
-  announce('liveStatus', `Sun ecliptic longitude ${deg.toFixed(1)} degrees.`);
+  announce('liveStatus', `Sun in ${nearestZodiacSign(-state.sunAngle)}, ecliptic longitude ${deg.toFixed(1)} degrees.`);
   updateDescriptions(true);
 });
 
@@ -1020,12 +1038,28 @@ window.klunlInitEqn = function () {};
 /* -------------------------------------------------------------------
    20. Startup
    ------------------------------------------------------------------- */
+/* Give each canvas a backing store at the DISPLAY's pixel density while keeping
+   all drawing code in the original logical coordinate system (the context is
+   pre-scaled by dpr). Without this the canvas is rasterised at CSS resolution
+   and then scaled by the browser, which looks soft/fuzzy on HiDPI screens. */
+let currentDpr = 1;
 function initCanvasResolution() {
-  ui.orbitCanvas.width = ORBIT_SIZE;
-  ui.orbitCanvas.height = ORBIT_SIZE;
-  ui.zodiacCanvas.width = STRIP_WIDTH;
-  ui.zodiacCanvas.height = STRIP_HEIGHT;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  currentDpr = dpr;
+  ui.orbitCanvas.width = Math.round(ORBIT_SIZE * dpr);
+  ui.orbitCanvas.height = Math.round(ORBIT_SIZE * dpr);
+  orbitCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ui.zodiacCanvas.width = Math.round(STRIP_WIDTH * dpr);
+  ui.zodiacCanvas.height = Math.round(STRIP_HEIGHT * dpr);
+  zodiacCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+
+/* Re-rasterise if the window moves to a display with a different pixel density
+   (or the user zooms, which changes devicePixelRatio). */
+window.addEventListener('resize', () => {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  if (Math.abs(dpr - currentDpr) > 0.01) { initCanvasResolution(); render(true); }
+});
 
 function boot() {
   initCanvasResolution();

@@ -108,6 +108,7 @@
   aspect-ratio: 1 / 1;
   margin: 0 auto;
   padding: 0 !important;
+  container-type: inline-size;   /* lets the ring labels scale with the diagram */
 }
 .sim-canvas {
   display: block;
@@ -140,8 +141,11 @@
   font-family: "Segoe UI Symbol", "Segoe UI", "DejaVu Sans", "Apple Symbols", sans-serif;
   font-variant-emoji: text;
 }
-.sim-zodiac-symbol__glyph { display: block; font-size: 1.3em; }
-.sim-zodiac-symbol__name  { display: block; font-size: 0.62em; font-weight: 600; }
+/* Sized in container-query units so the labels scale WITH the circular diagram:
+   comfortably large on desktop, shrinking proportionally on small screens
+   (so they never collide with each other and never have to be hidden). */
+.sim-zodiac-symbol__glyph { display: block; font-size: clamp(0.85rem, 4.4cqw, 1.9rem); }
+.sim-zodiac-symbol__name  { display: block; font-size: clamp(0.5rem, 2.15cqw, 0.95rem); font-weight: 600; }
 
 /* Draggable Sun proxy: a real focusable slider element positioned over its
    canvas marker. Kept an accessible min touch-target size even though its
@@ -171,6 +175,7 @@
      100% + horizontal padding (content-box) would overflow the viewport. */
   box-sizing: border-box;
   padding: 1.5rem 1.5rem 0 !important;
+  container-type: inline-size;   /* lets the strip labels scale with the strip */
 }
 .sim-strip-canvas { display: block; width: 100%; height: auto; }
 
@@ -211,9 +216,11 @@
   font-size: 0.95rem;
   line-height: 1;
 }
-/* darkened from the original's #b8860b goldenrod fill to clear 4.5:1 against
-   white at this text size -- see ACCESSIBILITY.md */
-.sim-strip-marker--sun    { color: #6b4f00; }
+/* Sun marker: the BAR is the bright sun yellow (matching the sun icon in the
+   Orbit View and the original), while the small "S" letter uses a darker gold
+   so it still clears 4.5:1 text contrast on white. */
+.sim-strip-marker--sun    { color: #8a6a00; }
+.sim-strip-marker--sun .sim-strip-marker__bar { background: #f0b400; }
 .sim-strip-marker--planet { color: #cc2222; }
 
 /* Zodiac symbol row: normal-flow relative box directly under the canvas; each
@@ -233,8 +240,11 @@
   line-height: 1.05;
   white-space: nowrap;
 }
-.sim-zodiac-strip-label__glyph { display: block; font-size: 1.15rem; }
-.sim-zodiac-strip-label__name  { display: block; font-size: 0.68rem; font-weight: 600; }
+/* Container-query sized so the 12 glyph+name labels scale with the strip's
+   width -- bigger on desktop, shrinking proportionally as the window narrows,
+   so the NAMES stay visible at every width instead of being hidden. */
+.sim-zodiac-strip-label__glyph { display: block; font-size: clamp(0.8rem, 2.7cqw, 1.7rem); }
+.sim-zodiac-strip-label__name  { display: block; font-size: clamp(0.5rem, 1.45cqw, 0.95rem); font-weight: 600; }
 
 /* ------------------------- sliders / readouts ------------------------ */
 /* Shared control grid so every row's label, value box, and slider bar line up
@@ -402,15 +412,17 @@
    (visibility:hidden keeps its layout size yet removes it from the a11y tree) */
 .sim-key__info-sizer { visibility: hidden; pointer-events: none; }
 
-/* Below ~44rem the full-width strip is too narrow for all 12 constellation
-   NAMES to fit without crowding, so show the glyphs only. The names are
-   decorative here (the row is aria-hidden; screen readers get #zodiacDesc,
-   and the Orbit View ring always shows glyph + name), so nothing essential
-   is lost. */
-@media (max-width: 44rem) {
-  .sim-zodiac-strip-label__name { display: none; }
-  .sim-zodiac-strip-labels { height: 1.6rem; }
-  .sim-zodiac-strip-label__glyph { font-size: 1rem; }
+/* At phone widths 12 horizontal names cannot fit side by side, so instead of
+   HIDING them we turn them vertical -- each name then needs only ~1 character
+   of width, so all 12 stay visible and readable however narrow the screen. */
+@media (max-width: 34rem) {
+  .sim-zodiac-strip-label__name {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    margin: 0.15rem auto 0;
+    font-size: 0.62rem;
+  }
+  .sim-zodiac-strip-labels { height: 5.2rem; }
 }
 
 /* ----------------------- responsive: phone portrait ------------------- */
