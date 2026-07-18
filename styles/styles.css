@@ -103,7 +103,9 @@
 /* ---------------------------- Orbit View ---------------------------- */
 .sim-orbit-wrap {
   position: relative;
-  width: 100%;
+  /* inset from the panel edges so the (now larger) zodiac ring labels have
+     breathing room instead of being pinned against the heading/panel edge */
+  width: calc(100% - 2.5rem);
   max-width: 40rem;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
@@ -174,7 +176,7 @@
      width:100% here -- a block box already fills its container, and adding
      100% + horizontal padding (content-box) would overflow the viewport. */
   box-sizing: border-box;
-  padding: 1.5rem 1.5rem 0 !important;
+  padding: 1.5rem 1.5rem 0.4rem !important;
   container-type: inline-size;   /* lets the strip labels scale with the strip */
 }
 .sim-strip-canvas { display: block; width: 100%; height: auto; }
@@ -228,8 +230,8 @@
    as the canvas, so they line up). */
 .sim-zodiac-strip-labels {
   position: relative;
-  height: 2.6rem;
-  margin-top: 0.2rem;
+  height: 3.1rem;         /* room for the larger glyph + name (was cramped at 2.6rem) */
+  margin-top: 0.45rem;    /* breathing room between the band and the labels */
   pointer-events: none;
 }
 .sim-zodiac-strip-label {
@@ -449,19 +451,19 @@
    fits on a single screen (user-directed). Placed last so it wins. Kept in
    rem so it still scales with the user's zoom/font setting.
    ===================================================================== */
-.sim-col { gap: 0.3rem; }
-.sim-panel { padding-bottom: 0.3rem; }
-.sim-panel .panel__heading { padding: 0.25rem 1rem; }
-.sim-panel .control-fieldset { padding: 0 1rem 0.25rem; }
+.sim-col { gap: 0.4rem; }
+.sim-panel { padding-bottom: 0.35rem; }
+.sim-panel .panel__heading { padding: 0.3rem 1rem; }
+.sim-panel .control-fieldset { padding: 0 1rem 0.3rem; }
 .sim-panel .control-fieldset__legend { padding-bottom: 0.2rem; }
 
 /* control rows */
-.sim-slider-row { margin-bottom: 0.2rem; }
+.sim-slider-row { margin-bottom: 0.3rem; }
 .sim-slider { min-height: 0; height: 1.15rem; }   /* small bar to match the compact text */
 .sim-preset-row { margin-bottom: 0.3rem; }
-.sim-planet-type { margin-top: 0.2rem; gap: 0.2rem 1rem; }
-.sim-choice { min-height: 1.45rem; margin: 0.05rem 0; }
-.sim-checks { margin-top: 0.1rem; margin-bottom: 0.25rem; gap: 0.2rem 1rem; }
+.sim-planet-type { margin-top: 0.3rem; gap: 0.25rem 1rem; }
+.sim-choice { min-height: 1.5rem; margin: 0.05rem 0; }
+.sim-checks { margin-top: 0.15rem; margin-bottom: 0.3rem; gap: 0.3rem 1rem; }
 .sim-button-row { margin-top: 0.15rem; margin-bottom: 0.25rem; }
 
 /* Key panel */
